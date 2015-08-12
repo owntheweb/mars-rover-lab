@@ -16,7 +16,6 @@ var imgHeight = 480;
 var captureInterval = 1000; // ms
 
 module.exports = Observable.create(function(observer) {
-	/*
 	var proc = spawn('raspistill', [
 		"-vf",
 		"-hf",
@@ -26,26 +25,20 @@ module.exports = Observable.create(function(observer) {
 		"-t", "999999999",
 		"-tl", captureInterval
 	]);
-	*/
 
 	var onChange = function() {
 		observer.onNext(imgFile);
 	};
 
-	var test = setInterval(onChange, captureInterval);
-
-	/*
 	fs.watchFile(imgFile, {
 		persistent: true,
 		interval: captureInterval // ms
 	}, onChange);
-	*/
 
 	return function() {
 		// clean up
-		//proc.kill();
-		//fs.unwatchFile(imgFile, onChange);
-		clearInterval(test);
+		proc.kill();
+		fs.unwatchFile(imgFile, onChange);
 	};
 })
 	.publish()
