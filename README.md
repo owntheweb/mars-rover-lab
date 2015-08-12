@@ -1,4 +1,4 @@
-# Drive a Homemade Rover Over the Internet
+# Drive a Rover Over the Internet
 
 Mars Rover Lab streams photos and other sensor data from its Raspberry Pi components to a satellite server where that content can be streamed to the world via the "Mars Rover Mission Control" interface.
 
@@ -70,10 +70,12 @@ diskutil list
 disk2 is the inserted disk in this case.
 
 Unmount that disk (change “2” to inserted disk!):
-diskutil unmountDisk /dev/disk2
+
+`diskutil unmountDisk /dev/disk2`
 
 Burn image to disk (change “2” to inserted disk, and update .img name/location):
-sudo dd bs=1m if=~/Downloads/2015-05-05-raspbian-wheezy.img of=/dev/disk2
+
+`sudo dd bs=1m if=~/Downloads/2015-05-05-raspbian-wheezy.img of=/dev/disk2`
 
 Wait a very long time. Go make some coffee. Eat a snack (or even dinner). Go for a walk. Start watching a fascinating documentary. Don’t interrupt the process. ;)
 
@@ -141,7 +143,7 @@ Choose “1 Force 3.5mm (‘headphone’) jack
 
 Finish everything up and reboot by right-arrowing to “Finish” at the bottom of the screen. This will make the changes happen!
 
-## Create and Install an RSA Key for SSH Authentication 
+## Create and Install RSA Key for SSH Authentication 
 
 Stop re-entering/transferring the text password every time you login to the Pi remotely by signing in with an RSA key instead. It's better security and also very convenient to "just connect".
 
