@@ -1,0 +1,16 @@
+{
+  "name": "roversatellite",
+  "version": "0.0.1",
+  "description": "RoverSatellite acts as the middle entity between rovers on Mars and Mars Mission Control",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Christopher Stevens <cstevens@spacefoundtion.org> (http://www.christopherstevens.cc)",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.3",
+    "socket.io": "^1.3.6",
+    "socket.io-stream": "^0.8.0"
+  }
+}

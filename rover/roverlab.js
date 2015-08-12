@@ -3,11 +3,13 @@
 //Special thanks to Arvind Ravulavaru with camera streaming functionality referenced from his work at:
 //http://thejackalofjavascript.com/rpi-live-streaming/
 
+var fs = require('fs');
 var io = require('socket.io-client');
+var ss = require('socket.io-stream');
+var q = require('q');
 
-// Raspberry Pi camera functionality
 var cam = require('./picam');
-var beacon = require('./roverbeacon');
+//var beacon = require('./roverbeacon');
 
 var _proto = {
 	// Socket event emitters
@@ -24,6 +26,34 @@ var _proto = {
 
 	onReady: function() {
 		console.log('Ready!');
+
+		var sendingImage = false;
+		var socket = this.socket;
+
+		this._camSubscription = cam
+			.skipWhile(function() {
+				return sendingImage;
+			})
+			.selectMany(function(imgLoc) {
+				sendingImage = true;
+
+				var defer = q.defer();
+				var stream = ss.createStream();
+				stream.on('end', function() {
+					defer.resolve();
+				});
+
+				ss(socket).emit('roverimage', stream, {
+					name: imgLoc
+				});
+
+				fs.createReadStream(imgLoc).pipe(stream);
+				return defer.promise;
+			})
+			.doOnNext(function() {
+				sendingImage = false;
+			})
+			.subscribe(this.onImageUpdated);
 	},
 
 	onLogin: function() {
@@ -45,10 +75,19 @@ var _proto = {
 
 	onDisconnect: function() {
 		console.error('Rover ' + this.roverName + ' disconnected!');
+
+		// clean up
+		this._camSubscription.dispose();
 	},
 
 	onError: function(err) {
+		// At this point it's probably not possible to sanely recover the
+		// socket. The ship's sinking...
 		throw err;
+	},
+
+	onImageUpdated: function() {
+		console.log("Sent updated image.");
 	}
 };
 
