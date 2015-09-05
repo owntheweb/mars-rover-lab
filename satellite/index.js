@@ -1,4 +1,4 @@
-var roverSatellite = require('roversatellite');
+var roverSatellite = require('./satellite');
 
 //port that rovers and mission control will connect to at this host
 //change this to unused port of choice, make sure it matches in RoverLab.js settings
