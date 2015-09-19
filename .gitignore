@@ -57,3 +57,5 @@ node_modules
 
 # PiCam in web
 satellite/web/PiCam/*.jpg
+
+client-comp
