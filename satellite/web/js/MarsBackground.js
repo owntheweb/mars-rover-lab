@@ -26,7 +26,7 @@ MarsBackground.prototype.init = function() {
 	this.renderer = new THREE.WebGLRenderer({alpha: true, antialias:true, canvas:canvas});
 	this.renderer.setSize( window.innerWidth, window.innerHeight );
 
-	light = new THREE.SpotLight(0x5aaeff, 0.8, 0, Math.PI / 2, 1);
+	light = new THREE.SpotLight(0xd77322, 0.8, 0, Math.PI / 2, 1);
 	light.position.set(-3000, 1200, 0);
 	light.target.position.set (0, 0, 0);
 	this.scene.add(light);
@@ -51,7 +51,7 @@ MarsBackground.prototype.init = function() {
 	sphere2Mat = new THREE.MeshPhongMaterial({
 	        wireframe: true,
 	        transparent: true,
-			  color: 0x2795ff
+			  color: 0xec8837
 	    });
 	this.sphere2 = new THREE.Mesh(sphere2Geo, sphere2Mat);
 	marsContainer.add(this.sphere2);
