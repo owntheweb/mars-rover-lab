@@ -7,13 +7,13 @@ var fs = require('fs');
 var io = require('socket.io-client');
 var ss = require('socket.io-stream');
 var q = require('q');
+var cam = require("raspicam");
 
-var cam = require('./picam');
 //var beacon = require('./roverbeacon');
 
 var _proto = {
+	
 	// Socket event emitters
-
 	login: function() {
 		this.socket.emit('roverlogin', {
 			roverID: this.roverName,
@@ -27,33 +27,9 @@ var _proto = {
 	onReady: function() {
 		console.log('Ready!');
 
-		var sendingImage = false;
 		var socket = this.socket;
 
-		this._camSubscription = cam
-			.skipWhile(function() {
-				return sendingImage;
-			})
-			.selectMany(function(imgLoc) {
-				sendingImage = true;
-
-				var defer = q.defer();
-				var stream = ss.createStream();
-				stream.on('end', function() {
-					defer.resolve();
-				});
-
-				ss(socket).emit('roverimage', stream, {
-					name: imgLoc
-				});
-
-				fs.createReadStream(imgLoc).pipe(stream);
-				return defer.promise;
-			})
-			.doOnNext(function() {
-				sendingImage = false;
-			})
-			.subscribe(this.onImageUpdated);
+		this.camera.start();
 	},
 
 	onLogin: function() {
@@ -65,7 +41,9 @@ var _proto = {
 		this.loggedIn = false;
 	},
 
-	onConnect: function() {
+	//socket event handlers
+
+	onSocketConnect: function() {
 		if (!this.loggedIn) {
 			this.login();
 		} else {
@@ -73,27 +51,85 @@ var _proto = {
 		}
 	},
 
-	onDisconnect: function() {
+	onSocketDisconnect: function() {
 		console.error('Rover ' + this.roverName + ' disconnected!');
 
 		// clean up
-		this._camSubscription.dispose();
+		this.camera.stop();
+		this.sendingImage = false;
+		this.loggedIn = false;
 	},
 
-	onError: function(err) {
-		// At this point it's probably not possible to sanely recover the
-		// socket. The ship's sinking...
-		throw err;
+	onSocketError: function(err) {
+		//throw err; //not all socket errors sink the ship ;)
+		console.log('socket error: ');
+		console.log(err);
 	},
 
-	onImageUpdated: function() {
-		console.log("Sent updated image.");
+	//camera
+
+	sendImage: function(filename) {
+		var defer = q.defer();
+		var self = this;
+		var size = 0;
+
+		//only send one image at a time
+		if(self.sendingImage == false) {
+			self.sendingImage = true;
+			console.log('Started transferring image.');
+			
+			var stream = ss.createStream();
+			stream.on('end', function() {
+				console.log('Finished transferring image.');
+				self.sendingImage = false;
+				defer.resolve();
+			});
+
+			stream.on('error', function() {
+				self.sendingImage = false;
+				defer.reject(new Error('There was a file streaming error.'));
+			});
+
+			ss(self.socket).emit('roverimage', stream, {
+				name: filename
+			});
+
+			fs.createReadStream(filename).pipe(stream);
+		} else {
+			defer.reject(new Error('Already sending an image. Try again later.'));
+		}
+
+		return defer.promise;
+	},
+
+	camera event handlers
+
+	onCameraStart: function() {
+		console.log("Camera started.");
+	},
+
+	onCameraStop: function() {
+		console.log("Camera stopped.");
+	},
+
+	onCameraRead: function(err, filename) {
+		var promise = this.sendImage(this.cameraOutputFile);
+		//console.log('hi');
 	}
 };
 
 // Factory function
-module.exports = function createRoverLab(name, password, host, port) {
+module.exports = function createRoverLab(name, password, host, port, camOps) {
 	var rover = Object.create(_proto);
+
+	// Initialize Camera
+	rover.camera = new cam(camOps);
+	rover.cameraOutputFile = camOps.output;
+
+	// Camera event handlers
+	rover.camera.on("started", rover.onCameraStart.bind(rover));
+	rover.camera.on("exited", rover.onCameraStop.bind(rover));
+	rover.camera.on("read", rover.onCameraRead.bind(rover));
 
 	// Settings
 	rover.roverName = name || ''; // Make sure this is unique between rovers
@@ -103,14 +139,15 @@ module.exports = function createRoverLab(name, password, host, port) {
 
 	// Rover Initial state
 	rover.loggedIn = false;
+	rover.sendingImage = false;
 
 	// Initialising the socket connection
 	rover.socket = io.connect(rover.satHost + ':' + rover.satPort + '/rover');
 
 	// Lifetime event handler actuation
-	rover.socket.on('connect', rover.onConnect.bind(rover));
-	rover.socket.on('disconnect', rover.onDisconnect.bind(rover));
-	rover.socket.on('error', rover.onError.bind(rover));
+	rover.socket.on('connect', rover.onSocketConnect.bind(rover));
+	rover.socket.on('disconnect', rover.onSocketDisconnect.bind(rover));
+	rover.socket.on('error', rover.onSocketError.bind(rover));
 	rover.socket.on('roverloginconfirmed', rover.onLogin.bind(rover));
 	rover.socket.on('roverloginfail', rover.onLoginError.bind(rover));
 
